@@ -1,0 +1,3 @@
+# Helm chart values
+
+args: ["--kubelet-insecure-tls"]

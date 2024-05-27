@@ -1,0 +1,4 @@
+# Helm chart values
+
+updater:
+  enabled: false

@@ -1,0 +1,292 @@
+global:
+  logging:
+    format: json
+    level: info
+
+controller:
+  replicas: 1 # Additional replicas will cause sharding of managed clusters across number of replicas.
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      selector:
+        prometheus: "true"
+  env:
+    - name: ARGOCD_K8S_CLIENT_QPS #required for Crossplane too many CRDs https://github.com/argoproj/argo-cd/pull/448
+      value: "300"
+
+repoServer:
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+  resources: # Adjust based on your specific use case (required for HPA)
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "200m"
+      memory: "512Mi"
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      selector:
+        prometheus: "true"
+
+applicationSet:
+  replicaCount: 1 # The controller doesn't scale horizontally, is active-standby replicas
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      selector:
+        prometheus: "true"
+    extraArgs:
+      - --loglevel=info
+      - --logformat=json
+
+server:
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+  resources: # Adjust based on your specific use case (required for HPA)
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "200m"
+      memory: "512Mi"
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      selector:
+        prometheus: "true"
+  # service:
+  #   type: LoadBalancer
+  #   annotations:
+  #     service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+  #     service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+
+configs:
+  repositories:
+    # Required when using helm repository with oci formal like karpenter and aws-gateway-api-controller
+    aws-public-ecr:
+      name: aws-public-ecr
+      type: helm
+      url: public.ecr.aws
+      enableOCI: "true"
+  cm:
+    application.resourceTrackingMethod: "annotation" #use annotation for tracking required for Crossplane
+    ga.anonymizeusers: "true"
+    ga.trackingid: ""
+    kustomize.buildOptions: --load-restrictor LoadRestrictionsNone --enable-helm
+    resource.exclusions: |
+      - kinds:
+        - ProviderConfigUsage
+        apiGroups:
+        - "*"
+      - apiGroups:
+          - cilium.io
+        kinds:
+          - CiliumIdentity
+        clusters:
+          - "*"
+      - apiGroups:
+          - kyverno.io
+        kinds:
+          - AdmissionReport
+          - BackgroundScanReport
+          - ClusterAdmissionReport
+          - ClusterBackgroundScanReport
+        clusters:
+          - "*"
+    resource.customizations: |
+      argoproj.io/Application:
+        health.lua: |
+          hs = {}
+          hs.status = "Progressing"
+          hs.message = ""
+          if obj.status ~= nil then
+            if obj.status.health ~= nil then
+              hs.status = obj.status.health.status
+              if obj.status.health.message ~= nil then
+                hs.message = obj.status.health.message
+              end
+            end
+          end
+          return hs
+      "awsblueprints.io/*":
+        health.lua: |
+          health_status = {
+            status = "Progressing",
+            message = "Provisioning ..."
+          }
+
+          if obj.status == nil or obj.status.conditions == nil then
+            return health_status
+          end
+
+          for i, condition in ipairs(obj.status.conditions) do
+            if condition.type == "Ready" then
+              if condition.status == "True" then
+                health_status.status = "Healthy"
+                health_status.message = "Resource is up-to-date."
+                return health_status
+              end
+            end
+
+            if condition.type == "LastAsyncOperation" then
+              if condition.status == "False" then
+                health_status.status = "Degraded"
+                health_status.message = condition.message
+                return health_status
+              end
+            end
+
+            if condition.type == "Synced" then
+              if condition.status == "False" then
+                health_status.status = "Degraded"
+                health_status.message = condition.message
+                return health_status
+              end
+            end
+          end
+
+          return health_status
+
+      "*.aws.upbound.io/*":
+        health.lua: |
+          health_status = {
+            status = "Progressing",
+            message = "Provisioning ..."
+          }
+
+          if obj.status == nil or obj.status.conditions == nil then
+            return health_status
+          end
+
+          for i, condition in ipairs(obj.status.conditions) do
+            if condition.type == "Ready" then
+              if condition.status == "True" then
+                health_status.status = "Healthy"
+                health_status.message = "Resource is up-to-date."
+                return health_status
+              end
+            end
+
+            if condition.type == "LastAsyncOperation" then
+              if condition.status == "False" then
+                health_status.status = "Degraded"
+                health_status.message = condition.message
+                return health_status
+              end
+            end
+
+            if condition.type == "Synced" then
+              if condition.status == "False" then
+                health_status.status = "Degraded"
+                health_status.message = condition.message
+                return health_status
+              end
+            end
+          end
+
+          return health_status
+
+      "*.aws.crossplane.io/*":
+        health.lua: |
+          health_status = {
+            status = "Progressing",
+            message = "Provisioning ..."
+          }
+
+          if obj.status == nil or obj.status.conditions == nil then
+            return health_status
+          end
+
+          for i, condition in ipairs(obj.status.conditions) do
+            if condition.type == "Ready" then
+              if condition.status == "True" then
+                health_status.status = "Healthy"
+                health_status.message = "Resource is up-to-date."
+                return health_status
+              end
+            end
+
+            if condition.type == "LastAsyncOperation" then
+              if condition.status == "False" then
+                health_status.status = "Degraded"
+                health_status.message = condition.message
+                return health_status
+              end
+            end
+
+            if condition.type == "Synced" then
+              if condition.status == "False" then
+                health_status.status = "Degraded"
+                health_status.message = condition.message
+                return health_status
+              end
+            end
+          end
+
+          return health_status
+
+  rbac:
+    create: true
+    annotations: {}
+    policy.default: role:readonly
+    policy.csv: |
+      p, role:readonly, applications, get, */*, allow
+      p, role:readonly, certificates, get, *, allow
+      p, role:readonly, clusters, get, *, allow
+      p, role:readonly, repositories, get, *, allow
+      p, role:readonly, projects, get, *, allow
+      p, role:readonly, accounts, get, *, allow
+      p, role:readonly, gpgkeys, get, *, allow
+
+      p, role:admin, applications, *, */*, allow
+      p, role:admin, certificates, *, *, allow
+      p, role:admin, clusters, *, *, allow
+      p, role:admin, repositories, *, *, allow
+      p, role:admin, projects, *, *, allow
+      p, role:admin, logs, get, *, allow
+      p, role:admin, exec, create, */*, allow
+      p, role:admin, gpgkeys, *, *, allow
+
+      g, argocd-readonly, role:readonly
+      g, argocd-admin, role:admin
+
+    scopes: "[email, accounts, groups]"
+
+# -- Array of extra K8s manifests to deploy
+## Note: Supports use of custom Helm templates
+##       It gets handle in this form inside the argo-cd chart
+# {{ range .Values.extraObjects }}
+# ---
+# {{ if typeIs "string" . }}
+#     {{- tpl . $ }}
+# {{- else }}
+#     {{- tpl (toYaml .) $ }}
+# {{- end }}
+# {{ end }}
+extraObjects:
+  - |
+    apiVersion: argoproj.io/v1alpha1
+    kind: AppProject
+    metadata:
+      name: default
+      namespace: {{ $.Release.Namespace | quote }}
+      annotations:
+        source: eks-addons
+    spec:
+      clusterResourceWhitelist:
+      - group: '*'
+        kind: '*'
+      sourceRepos:
+        - '*'
+      destinations:
+        - namespace: '*'
+          name: '*'
+          server: '*'

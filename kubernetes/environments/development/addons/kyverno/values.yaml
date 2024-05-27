@@ -1,0 +1,5 @@
+kyverno:
+  reportsController:
+    resources:
+      limits:
+        memory: 256Mi

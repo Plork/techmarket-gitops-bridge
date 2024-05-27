@@ -1,0 +1,6 @@
+# Helm chart values
+
+grafana:
+  serviceMonitor:
+    enabled: true
+  adminPassword: admin

@@ -1,0 +1,5 @@
+# https://github.com/kyverno/kyverno/tree/main/charts/kyverno-policies
+
+kyverno-policies:
+  validationFailureAction: Audit
+  failurePolicy: Ignore

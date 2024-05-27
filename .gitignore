@@ -1,0 +1,17 @@
+# Ignore any .env files
+**/.env
+
+# Ignore Terraform state and cache folders
+**/.terraform.tfstate.lock.info
+**/.terraform.lock.hcl
+**/.terraform/
+**/terraform.tfstate*
+
+# Ignore local variable settings
+**/terraform.tfvars
+**/workspaces/eks/locals.tf
+
+kubernetes/charts/**/charts
+kubernetes/charts/**/Chart.lock
+
+terraform/*-config

@@ -1,0 +1,112 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: addons-argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  generators:
+    - merge:
+        mergeKeys: [server]
+        generators:
+          - clusters:
+              values:
+                addonChart: argo-cd
+                addonChartVersion: 6.0.1
+                # anything not staging or prod use this version
+                addonChartRepositoryNamespace: argocd
+                addonChartRepository: https://argoproj.github.io/argo-helm
+              selector:
+                matchExpressions:
+                  - key: enable_argocd
+                    operator: In
+                    values: ["true"]
+          - clusters:
+              selector:
+                matchLabels:
+                  environment: staging
+              values:
+                addonChartVersion: 6.0.1
+          - clusters:
+              selector:
+                matchLabels:
+                  environment: prod
+              values:
+                addonChartVersion: 6.0.1
+  template:
+    metadata:
+      name: addon-{{.name}}-{{.values.addonChart}}
+    spec:
+      project: default
+      sources:
+        - repoURL: "{{.metadata.annotations.addons_repo_url}}"
+          targetRevision: "{{.metadata.annotations.addons_repo_revision}}"
+          ref: values
+        - chart: "{{.values.addonChart}}"
+          repoURL: "{{.values.addonChartRepository}}"
+          targetRevision: "{{.values.addonChartVersion}}"
+          helm:
+            releaseName: "{{.values.addonChart}}"
+            ignoreMissingValueFiles: true
+            valueFiles:
+              - $values/{{.metadata.annotations.addons_repo_basepath}}environments/default/addons/{{.values.addonChart}}/values.yaml
+              - $values/{{.metadata.annotations.addons_repo_basepath}}environments/{{.metadata.labels.environment}}/addons/{{.values.addonChart}}/values.yaml
+              - $values/{{.metadata.annotations.addons_repo_basepath}}environments/clusters/{{.name}}/addons/{{.values.addonChart}}/values.yaml
+            parameters:
+              - name: fullnameOverride
+                value: "{{.values.addonChart}}"
+            values: |
+              configs:
+                cm:
+                  url: "https://{{.metadata.annotations.argocd_host}}"
+                  oidc.config: |
+                    issuer: "{{.metadata.annotations.argocd_oidc_issuer}}"
+                    name: Okta
+                    clientID: $argocd-oidc-okta-config:client-id
+                    clientSecret: $argocd-oidc-okta-config:client-secret
+                    redirectURL: "https://{{.metadata.annotations.argocd_host}}/auth/login"
+                    requestedIDTokenClaims:
+                      groups:
+                        essential: true
+                    requestedScopes:
+                      - openid
+                      - profile
+                      - email
+                      - groups
+              server:
+                service:
+                  type: "ClusterIP"
+                ingress:
+                  enabled: true
+                  controller: aws
+                  hostname: "{{.metadata.annotations.argocd_host}}"
+                  {{ if eq .metadata.annotations.cloud_provider "aws" }}
+                  annotations:
+                    alb.ingress.kubernetes.io/scheme: "internet-facing"
+                    alb.ingress.kubernetes.io/target-type: "ip"
+                    alb.ingress.kubernetes.io/backend-protocol: "HTTPS"
+                    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+                    alb.ingress.kubernetes.io/tags: "Environment=hub,GitOps=true"
+                    external-dns.alpha.kubernetes.io/hostname: "{{.metadata.annotations.argocd_host}}"
+                  ingressClassName: "alb"
+                  {{ end }}
+                ingressGrpc:
+                  enabled: true
+                  {{ if eq .metadata.annotations.cloud_provider "aws" }}
+                  isAWSALB: true
+                  awsALB:
+                    serviceType: "ClusterIP"
+                    backendProtocolVersion: "GRPC"
+                  {{ end }}
+      destination:
+        namespace: "{{.values.addonChartRepositoryNamespace}}"
+        name: "{{.name}}"
+      syncPolicy:
+        automated:
+          prune: false
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true # Big CRDs.
