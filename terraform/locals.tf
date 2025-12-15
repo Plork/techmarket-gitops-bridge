@@ -2,7 +2,7 @@ locals {
   domain_name = "localtest.me"
 
   cluster = {
-    name    = "kargo"
+    name    = "minikube"
     version = "1.32"
     addons = {
       enable_argo_rollouts = true
