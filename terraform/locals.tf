@@ -1,21 +1,13 @@
 locals {
-  domain_name = "localdev.me"
+  domain_name = "localtest.me"
 
   cluster = {
-    name    = "techmarket"
-    version = "1.28"
+    name    = "kargo"
+    version = "1.32"
     addons = {
-      enable_argo_rollouts         = false
-      enable_argo_workflows        = false
-      enable_cert_manager          = false
-      enable_ingress_nginx         = true
-      enable_keda                  = true
-      enable_kube_prometheus_stack = false
-      enable_kyverno               = false
-      enable_metrics_server        = false
-      enable_reloader              = false
-      enable_techmarket            = false
-      enable_vpa                   = false
+      enable_argo_rollouts = true
+      enable_cert_manager  = true
+      enable_ingress_nginx = true
 
       techmarket = {
         environment = "development"

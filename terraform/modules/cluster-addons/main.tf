@@ -8,11 +8,3 @@ module "argo_cd" {
   metadata     = local.addons_metadata
   url          = var.argocd.url
 }
-
-module "addons_metadata" {
-  source = "./modules/addons-metadata"
-
-  enable_techmarket = local.addons.enable_techmarket
-
-  techmarket = try(var.addons.techmarket, null)
-}

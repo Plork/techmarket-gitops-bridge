@@ -28,12 +28,6 @@ spec:
                   environment: staging
               values:
                 addonChartVersion: 6.0.1
-          - clusters:
-              selector:
-                matchLabels:
-                  environment: prod
-              values:
-                addonChartVersion: 6.0.1
   template:
     metadata:
       name: addon-{{name}}-{{values.addonChart}}
@@ -52,14 +46,13 @@ spec:
             valueFiles:
               - $values/{{metadata.annotations.addons_repo_basepath}}environments/default/addons/{{values.addonChart}}/values.yaml
               - $values/{{metadata.annotations.addons_repo_basepath}}environments/{{metadata.labels.environment}}/addons/{{values.addonChart}}/values.yaml
-              - $values/{{metadata.annotations.addons_repo_basepath}}environments/clusters/{{name}}/addons/{{values.addonChart}}/values.yaml
             values: |
               server:
                 service:
                   type: ClusterIP
                 ingress:
                   enabled: true
-                  hostname: "{{values.addonChart}}.{{metadata.labels.environment}}.{{metadata.annotations.domain_name}}"
+                  hostname: "{{values.addonChart}}.{{metadata.annotations.domain_name}}"
                   annotations:
                     kubernetes.io/ingress.class: nginx
                     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"

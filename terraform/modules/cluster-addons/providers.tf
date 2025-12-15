@@ -1,5 +1,5 @@
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host = var.cluster.endpoint
 
     client_certificate     = var.cluster.client_certificate

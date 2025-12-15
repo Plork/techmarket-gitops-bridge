@@ -12,7 +12,7 @@ locals {
   )
 }
 
-resource "kubernetes_namespace" "argocd" {
+resource "kubernetes_namespace_v1" "argocd" {
   metadata {
     name        = "argocd"
     annotations = local.annotations
@@ -20,10 +20,10 @@ resource "kubernetes_namespace" "argocd" {
   }
 }
 
-resource "kubernetes_secret" "cluster" {
+resource "kubernetes_secret_v1" "cluster" {
   metadata {
     name      = var.cluster_name
-    namespace = kubernetes_namespace.argocd.id
+    namespace = kubernetes_namespace_v1.argocd.id
 
     annotations = merge(
       local.annotations,
@@ -58,7 +58,7 @@ resource "helm_release" "argocd" {
   chart            = "argo-cd"
   create_namespace = true
   name             = "argo-cd"
-  namespace        = kubernetes_namespace.argocd.id
+  namespace        = kubernetes_namespace_v1.argocd.id
   repository       = var.chart_repository
   skip_crds        = false
   version          = var.chart_version
@@ -86,17 +86,19 @@ resource "helm_release" "argocd" {
   ]
 
   // Override helm release to "argo-cd"
-  set {
-    name  = "fullnameOverride"
-    value = "argo-cd"
-  }
+  set = [
+    {
+      name  = "fullnameOverride"
+      value = "argo-cd"
+    }
+  ]
 }
 
 resource "helm_release" "bootstrap" {
   for_each = var.apps
 
   name      = each.key
-  namespace = kubernetes_namespace.argocd.id
+  namespace = kubernetes_namespace_v1.argocd.id
   chart     = "${path.module}/charts/resources"
   version   = "1.0.0"
 
@@ -107,5 +109,5 @@ resource "helm_release" "bootstrap" {
     EOT
   ]
 
-  depends_on = [resource.kubernetes_secret.cluster]
+  depends_on = [resource.kubernetes_secret_v1.cluster]
 }

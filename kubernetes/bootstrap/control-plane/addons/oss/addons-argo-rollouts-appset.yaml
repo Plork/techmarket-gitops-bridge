@@ -27,12 +27,6 @@ spec:
                   environment: staging
               values:
                 addonChartVersion: 2.32.0
-          - clusters:
-              selector:
-                matchLabels:
-                  environment: prod
-              values:
-                addonChartVersion: 2.32.0
   template:
     metadata:
       name: addon-{{name}}-{{values.addonChart}}
@@ -51,7 +45,6 @@ spec:
             valueFiles:
               - $values/{{metadata.annotations.addons_repo_basepath}}environments/default/addons/{{values.addonChart}}/values.yaml
               - $values/{{metadata.annotations.addons_repo_basepath}}environments/{{metadata.labels.environment}}/addons/{{values.addonChart}}/values.yaml
-              - $values/{{metadata.annotations.addons_repo_basepath}}clusters/{{name}}/addons/{{values.addonChart}}/values.yaml
       destination:
         namespace: "{{values.addonChart}}"
         name: "{{name}}"
