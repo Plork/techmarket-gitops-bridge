@@ -5,10 +5,11 @@ locals {
     name    = "minikube"
     version = "1.32"
     addons = {
-      enable_argo_rollouts = true
-      enable_cert_manager  = true
-      enable_ingress_nginx = true
-      enable_kargo           = true
+      enable_argo_rollouts  = true
+      enable_cert_manager   = true
+      enable_ingress_nginx  = true
+      enable_kargo          = true
+      enable_metrics_server = true
 
       ingress_nginx = {
         service_type = "NodePort"

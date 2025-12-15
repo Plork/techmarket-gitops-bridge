@@ -3,11 +3,12 @@ locals {
   argocd_host = trim(var.argocd.url, "https://")
 
   oss_addons = {
-    enable_argo_rollouts         = try(var.addons.enable_argo_rollouts, false)
-    enable_argocd                = try(var.addons.enable_argocd, true)
-    enable_cert_manager          = try(var.addons.enable_cert_manager, false)
-    enable_ingress_nginx         = try(var.addons.enable_ingress_nginx, true)
-    enable_kargo                 = try(var.addons.enable_kargo, false)
+    enable_argo_rollouts = try(var.addons.enable_argo_rollouts, false)
+    enable_argocd        = try(var.addons.enable_argocd, true)
+    enable_cert_manager  = try(var.addons.enable_cert_manager, false)
+    enable_ingress_nginx = try(var.addons.enable_ingress_nginx, true)
+    enable_kargo         = try(var.addons.enable_kargo, false)
+    enable_metrics_server = try(var.addons.enable_metrics_server, true)
   }
 
   addons = merge(

@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: addons-kargo
+  name: addons-metrics-server
 spec:
   syncPolicy:
     preserveResourcesOnDeletion: true
@@ -12,14 +12,13 @@ spec:
         generators:
           - clusters:
               values:
-                addonChart: kargo
-                # anything not staging or prod use this version
-                addonChartVersion: 6.0.1
-                addonChartRepositoryNamespace: kargo
-                addonChartRepository: ghcr.io/akuity/kargo-charts/kargo
+                addonChart: metrics-server
+                addonChartNamespace: kube-system
+                addonChartVersion: 3.13.0
+                addonChartRepository: https://kubernetes-sigs.github.io/metrics-server
               selector:
                 matchExpressions:
-                  - key: enable_kargo
+                  - key: enable_metrics_server
                     operator: In
                     values: ["true"]
           - clusters:
@@ -27,7 +26,7 @@ spec:
                 matchLabels:
                   environment: staging
               values:
-                addonChartVersion: 6.0.1
+                addonChartVersion: 3.13.0
   template:
     metadata:
       name: addon-{{name}}-{{values.addonChart}}
@@ -46,25 +45,12 @@ spec:
             valueFiles:
               - $values/{{metadata.annotations.addons_repo_basepath}}environments/default/addons/{{values.addonChart}}/values.yaml
               - $values/{{metadata.annotations.addons_repo_basepath}}environments/{{metadata.labels.environment}}/addons/{{values.addonChart}}/values.yaml
-            values: |
-              api:
-                host: {{values.addonChart }}.{{metadata.annotations.domain_name }}
-                ingress:
-                  enabled: true
-                  ingressClassName: nginx
-                  annotations:
-                    kubernetes.io/ingress.class: nginx
-                    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-                    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
-                argocd:
-                  urls:
-                    "": "https://{{ .metadata.annotations.argocd_host }}"
+              - $values/{{metadata.annotations.addons_repo_basepath}}clusters/{{name}}/addons/{{values.addonChart}}/values.yaml
       destination:
-        namespace: "{{values.addonChartRepositoryNamespace}}"
+        namespace: "{{values.addonChartNamespace}}"
         name: "{{name}}"
       syncPolicy:
-        automated:
-          prune: false
+        automated: {}
         syncOptions:
           - CreateNamespace=true
           - ServerSideApply=true # Big CRDs.
