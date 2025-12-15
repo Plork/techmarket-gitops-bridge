@@ -8,10 +8,7 @@ locals {
       enable_argo_rollouts = true
       enable_cert_manager  = true
       enable_ingress_nginx = true
-
-      techmarket = {
-        environment = "development"
-      }
+      enable_kargo           = true
 
       ingress_nginx = {
         service_type = "NodePort"

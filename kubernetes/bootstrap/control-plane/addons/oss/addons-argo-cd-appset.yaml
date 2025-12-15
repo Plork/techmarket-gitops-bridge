@@ -52,8 +52,6 @@ spec:
               server:
                 service:
                   type: ClusterIP
-                certificate:
-                  enabled: true
                 ingress:
                   enabled: true
                   ingressClassName: nginx

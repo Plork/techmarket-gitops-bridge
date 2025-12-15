@@ -7,6 +7,7 @@ locals {
     enable_argocd                = try(var.addons.enable_argocd, true)
     enable_cert_manager          = try(var.addons.enable_cert_manager, false)
     enable_ingress_nginx         = try(var.addons.enable_ingress_nginx, true)
+    enable_kargo                 = try(var.addons.enable_kargo, false)
   }
 
   addons = merge(
